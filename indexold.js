@@ -22,7 +22,7 @@ async function loadTranscripts(videoIds){
                 fetch(`https://subtitles-for-youtube.p.rapidapi.com/subtitles/${videoId}`, {
                     "method": "GET",
                     "headers": {
-                        "x-rapidapi-key": "53fa8d6d8fmsh3db759a118a047cp14ac38jsnc25fc8245efc",
+                        "x-rapidapi-key": "fd8c9ef345msh1838462a501ab63p16af15jsnbbe5d0cde8e4",
                         "x-rapidapi-host": "subtitles-for-youtube.p.rapidapi.com"
                     }
                     }
@@ -36,16 +36,15 @@ async function loadTranscripts(videoIds){
 
 
 async function Search(req, res, next) {
-    const search = req.params.primary_search;
-    console.log(search);
+    const search = req.body.primary_search;
     // const search = 'christopher%2Ckapic'
-    const subsearch = req.params.secondary_search;
+    const subsearch = req.body.secondary_search;
     // const subsearch = 'zone';
     const range = 20;
-    const response = await fetch(`https://youtube-v31.p.rapidapi.com/search?q=${search}%2Clecture&part=snippet%2Cid&regionCode=US&maxResults=${range}`, {
+    const response = await fetch(`https://youtube-v31.p.rapidapi.com/search?q=${search}&part=snippet%2Cid&regionCode=US&maxResults=${range}`, {
 	"method": "GET",
 	"headers": {
-		"x-rapidapi-key": "53fa8d6d8fmsh3db759a118a047cp14ac38jsnc25fc8245efc",
+		"x-rapidapi-key": "fd8c9ef345msh1838462a501ab63p16af15jsnbbe5d0cde8e4",
 		"x-rapidapi-host": "youtube-v31.p.rapidapi.com"
 	}
     })
@@ -92,7 +91,7 @@ async function Search(req, res, next) {
             }
             console.log(transcript_json);
             for (k = 0; k < transcript_json.length; k++) {
-                if (transcript_json[k].text && transcript_json[k].text.indexOf(subsearch) !== -1) {
+                if (transcript_json[k].text.indexOf(subsearch) !== -1) {
                     to_return[j].links.push(`https://youtu.be/${id}?t=${Math.floor(transcript_json[k].start)}`);
                 }
                 try {
@@ -102,16 +101,12 @@ async function Search(req, res, next) {
                 }
             }
         }
-	function notNull(item) {
-		return (item != null)
-	}
-	to_return = to_return.filter(notNull);
     
     res.status(200).send(to_return);
 }
 
 // Routes
-app.get('/search/:primary_search/:secondary_search', Search);
+app.get('/search', Search);
 app.get('/', Search);
 // app.post('/addKey', addKey)
 

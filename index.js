@@ -1,10 +1,14 @@
 const express = require('express');
 const fetch = require('node-fetch');
-
 const cors = require('cors');
-// if (process.env.NODE_ENV !== 'production') {
-//     require('dotenv').config();
-// }
+require('dotenv').config();
+
+// Environment variables:
+// found in .env
+// Example:
+// RAPIDAPI_KEY=thisisafakeapikey1234567890
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY
+const RESULTS_TO_SCAN = process.env.RESULTS_TO_SCAN
 
 const app = express();
 app.use(cors());
@@ -22,7 +26,7 @@ async function loadTranscripts(videoIds){
                 fetch(`https://subtitles-for-youtube.p.rapidapi.com/subtitles/${videoId}`, {
                     "method": "GET",
                     "headers": {
-                        "x-rapidapi-key": "fd8c9ef345msh1838462a501ab63p16af15jsnbbe5d0cde8e4",
+                        "x-rapidapi-key": RAPIDAPI_KEY,
                         "x-rapidapi-host": "subtitles-for-youtube.p.rapidapi.com"
                     }
                     }
@@ -36,15 +40,16 @@ async function loadTranscripts(videoIds){
 
 
 async function Search(req, res, next) {
-    const search = req.body.primary_search;
+    const search = req.params.primary_search;
+    // console.log(search);
     // const search = 'christopher%2Ckapic'
-    const subsearch = req.body.secondary_search;
+    const subsearch = req.params.secondary_search;
     // const subsearch = 'zone';
-    const range = 20;
-    const response = await fetch(`https://youtube-v31.p.rapidapi.com/search?q=${search}&part=snippet%2Cid&regionCode=US&maxResults=${range}`, {
+    const range = RESULTS_TO_SCAN;
+    const response = await fetch(`https://youtube-v31.p.rapidapi.com/search?q=${search}%2Clecture&part=snippet%2Cid&regionCode=US&maxResults=${range}`, {
 	"method": "GET",
 	"headers": {
-		"x-rapidapi-key": "fd8c9ef345msh1838462a501ab63p16af15jsnbbe5d0cde8e4",
+		"x-rapidapi-key": RAPIDAPI_KEY,
 		"x-rapidapi-host": "youtube-v31.p.rapidapi.com"
 	}
     })
@@ -58,8 +63,8 @@ async function Search(req, res, next) {
         }
     }
     transcript_promises = await loadTranscripts(videoIds);
-    console.log("transcript_promises:")
-    console.log(transcript_promises);
+    // console.log("transcript_promises:")
+    // console.log(transcript_promises);
     let to_return = []
     for (i = 0; i < range; i++) {
         if (data.items[i].id.kind != 'youtube#video') {
@@ -82,16 +87,16 @@ async function Search(req, res, next) {
                 continue
             }
             const transcript = await transcript_promises[j]
-            console.log(j);
+            // console.log(j);
             let transcript_json = 'oops';
             try {
                 transcript_json = await transcript.json();
             } catch {
                 continue
             }
-            console.log(transcript_json);
+            // console.log(transcript_json);
             for (k = 0; k < transcript_json.length; k++) {
-                if (transcript_json[k].text.indexOf(subsearch) !== -1) {
+                if (transcript_json[k].text && transcript_json[k].text.indexOf(subsearch) !== -1) {
                     to_return[j].links.push(`https://youtu.be/${id}?t=${Math.floor(transcript_json[k].start)}`);
                 }
                 try {
@@ -101,14 +106,26 @@ async function Search(req, res, next) {
                 }
             }
         }
+	function notNull(item) {
+		return (item != null)
+	}
+	to_return = to_return.filter(notNull);
+    // console.log(to_return);
+    to_return.sort((obj1, obj2) => {
+        console.log(obj1.links.length)
+        console.log(obj2.links.length)
+        console.log('\n\n\n')
+        return (obj2.links.length - obj1.links.length);
+    })
+    console.log(to_return);
+
     
     res.status(200).send(to_return);
 }
 
 // Routes
-app.get('/search', Search);
-app.get('/', Search);
-// app.post('/addKey', addKey)
+app.get('/search/:primary_search/:secondary_search', Search);
+app.get('/version', (req, res) => {res.status(200).send({"version": "2"})})
 
 app.listen(5000, () => {
     console.log(`App listening on port 5000`);
