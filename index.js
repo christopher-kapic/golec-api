@@ -9,6 +9,7 @@ require('dotenv').config();
 // RAPIDAPI_KEY=thisisafakeapikey1234567890
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY
 const RESULTS_TO_SCAN = process.env.RESULTS_TO_SCAN
+const GOLEC_SCORE_BIAS = process.env.GOLEC_SCORE_BIAS
 
 const app = express();
 app.use(cors());
@@ -77,7 +78,8 @@ async function Search(req, res, next) {
             thumbnail: data.items[i].snippet.thumbnails.medium.url,
             description: data.items[i].snippet.description,
             links: [],
-            length: 0
+            length: 0,
+            score: 0
         }
     }
 
@@ -97,10 +99,12 @@ async function Search(req, res, next) {
             // console.log(transcript_json);
             for (k = 0; k < transcript_json.length; k++) {
                 if (transcript_json[k].text && transcript_json[k].text.indexOf(subsearch) !== -1) {
-                    to_return[j].links.push(`https://youtu.be/${id}?t=${Math.floor(transcript_json[k].start)}`);
+                    to_return[j].links.push([`https://youtu.be/${id}?t=${Math.floor(transcript_json[k].start)}`, transcript_json[k].text]);
                 }
                 try {
-                    to_return[j].length = Math.floor(transcript_json[k].end);
+                    const len = Math.floor(transcript_json[k].end)
+                    to_return[j].length = len;
+                    to_return[j].score = Math.ceil((to_return[j].links.length / len) * GOLEC_SCORE_BIAS)
                 } catch {
                     console.log("No end timestamp");
                 }
