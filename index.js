@@ -15,6 +15,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const removePunctuation = (str) => {
+    let to_return = str;
+    to_return.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+    return to_return;
+}
+
 async function loadTranscripts(videoIds){
     // Returns an array of promises
     let to_return = []
@@ -42,7 +48,7 @@ async function loadTranscripts(videoIds){
 
 async function Search(req, res, next) {
     const search = req.params.primary_search;
-    // console.log(search);
+    console.log(search);
     // const search = 'christopher%2Ckapic'
     const subsearch = req.params.secondary_search;
     // const subsearch = 'zone';
@@ -98,7 +104,13 @@ async function Search(req, res, next) {
             }
             // console.log(transcript_json);
             for (k = 0; k < transcript_json.length; k++) {
-                if (transcript_json[k].text && transcript_json[k].text.indexOf(subsearch) !== -1) {
+                if (transcript_json[k].text && removePunctuation(transcript_json[k].text.toLowerCase()
+                                                                    .padStart(1, " ")
+                                                                    .padEnd(1, " "))
+                                                                    .indexOf(removePunctuation(subsearch
+                                                                        .toLowerCase()
+                                                                        .padStart(1, " ")
+                                                                        .padEnd(1, " "))) !== -1) {
                     to_return[j].links.push([`https://youtu.be/${id}?t=${Math.floor(transcript_json[k].start)}`, transcript_json[k].text]);
                 }
                 try {
